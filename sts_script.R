@@ -1,0 +1,257 @@
+#!/usr/bin/env Rscript
+#####################################################################################
+#####################################################################################
+
+#Script to strip PHI from STS data file and remove procedures occurring in unconsented 
+#participants > 18 years of age
+
+#notes: - program assumes sts data file and key file are provided in sts folder 
+#.        (modify as needed to either mount folder or allow passing file path to each)
+#.      - program assumes sts file is an .xlsx, that all sites will have the same set of column headers, 
+#.        and that the headers/column names are case sensitive
+#.      - program assumes a key file is provided that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
+#.      - program assumes MRNs and STS IDs in key file map to the format in the STS dataset. For example, 
+#.        if your STS file contains MRNs submitted with various formats such as "MR123456", "mr123456", "123456" then 
+#.        your key should contain MRNs in these various formats
+#.      - program will first try to match MRNs in the key file to the MRNs in the sts data file. If a MRN is missing in 
+#.        the key file (e.g., left blank) then the program will try to match record on the STS ID
+#.      - program assumes that all patients that were reconsented at >= 18 years of age will be identified by a 
+#.        numeric value of 1 in the reconsented_at_18y column in the key file. For patients < 18 years of age
+#.        or those that have not yet reconsented after turning 18y this column can either be left blank or a value 
+#.        of 0 provided. 
+
+
+#notes to Trang:
+#       - I defer to how you want to have sites pass the data to the container (either mounting a folder or 
+#.        passing paths to each file directly) 
+#.      - the my_cols object that is read in below will need to be made available to the script in the container. I defer
+#.        to you as to whether this is easiest by including it in a data folder or via some other approach.
+#.      - Ideally, we want all the messages and error below that are written to the R console to be written to the 
+#.        terminal when running the container. Please let me know if this will not work. Another option would be to 
+#.        write them all to a log file etc.
+#.        
+
+
+#Created by: Nicholas Ollberding
+#On: 11/20/24
+#R version: 4.1.1
+# - tidyverse v1.3.1
+# - readxl v1.3.1
+
+#####################################################################################
+#####################################################################################
+
+
+#Load libraries 
+library(tidyverse)
+library(readxl)
+library(docopt)
+
+doc <- "
+      Usage:
+        entrypoint.R [-h | --help] [--input-file <filename>] [--key-file <keyfile>]
+
+         
+      Options:
+        -h --help             Show available parameters.
+        --input-file <filename>
+                              Specify input xlsx data file.
+        --key-file <keyfile>
+                              Specify key file.
+                              
+      "
+opt <- docopt::docopt(doc)
+
+
+# Access the parsed arguments
+input_path <- opt[["--input-file"]]
+key_file <- opt[["--key-file"]]
+
+if (is.null(input_path)){
+  stop("Input xlsx is missing. Please specify a .xlsx sts data file")
+}
+
+if (is.null(key_file)){
+  stop("Key xlsx file is missing. Please specify a key .xlsx stsdata file")
+}
+
+
+
+
+
+# Example: Print the provided path
+cat("Processing data at path:", input_path, "\n")
+#Set working directory 
+#setwd("/app")
+#notes: - this is serving to "mount a volume" containing the site STS files
+#.      - I expect this can get edited out of the final program if the -v /path/to/local/folder:/container/path is
+#.        used to mount a folder containing these files when the container is created
+#.      - please let me know if you know a better way!
+
+
+#Read in site STS data and confirm expected file names
+sts_df <- read_excel(input_path)  
+
+
+#Verify all column headers in the STS data file are as expected   
+my_cols <- readRDS("/app/sts_col_names.rds")   #this will need to be loaded into the docker image so it can be read in by the R program
+sts_cols <- colnames(sts_df)
+
+check_vectors <- function(vector1, vector2) {
+  if (identical(sort(vector1), sort(vector2))) {
+    message("All column headers in the STS data file are as expected. Continuing...\n")
+  } else {
+    stop("Error: There appear to be additional or missing columns in your STS data file. Please contact the ACC for assistance.")
+  }
+}
+check_vectors(my_cols, sts_cols)
+
+
+#Remove/strip all PHI fields
+drop_cols <- c("CHSDID", "PatID", "VendorID", "AsstSurgeon", "AsstSurgNPI", "BirthCit", "BirthHospName",	"BirthHospTIN", "BirthSta",
+                "CnsltAttnd",	"CnsltAttndID", "CRNA",	"CRNAName", "FelRes", "HandoffAnesth",	"HandoffNursing",	"HandoffPhysStaff",
+                "HandoffSurg", "HICNumber", "HospName",	"HospNameKnown",	"HospNPI",	"HospStat",	"HospZIP",
+                "MatFName",	"MatLName", "MatMInit",	"MatMName",	"MatNameKnown",	"MatSSN",	"MatSSNKnown",
+                "NonCVPhys", "PatCountry",	"PatFName", "PatLName",	"PatMInit",	"PatMName",
+                "PatPostalCode", "PatRegion", "PrimAnesName", "RefCard",	"RefPhys", "Resident",	"ResidentID",
+                "SecAnes",	"SecAnesName", "Surgeon", "SurgNPI", "TIN")
+
+clean_df <- sts_df %>%
+  select(-all_of(drop_cols))
+
+check_no_phi <- function(vector1, vector2) {
+  common_items <- intersect(vector1, vector2)
+  if (length(common_items) == 0) {
+    message("PHI has been removed. Continuing...\n")
+  } else {
+    stop("Error: Some PHI may have failed to be removed from your STS file. Please contact the ACC for assistance. The fields are: ", paste(common_items, collapse = ", "))
+  }
+}
+check_no_phi(colnames(clean_df), drop_cols)
+
+
+#Replace STS IDs with PCGC blinded IDs
+pcgc_ids <- read_excel(key_file)
+
+pcgc_ids <- pcgc_ids %>%
+  rename_all(tolower) %>%
+  rename("ParticID" = "sts_id",
+         "MedRecN" = "mrn")
+
+mrn_ids <- pcgc_ids %>%
+  filter(!(is.na(MedRecN))) %>%
+  select(-ParticID)
+
+sts_ids <- pcgc_ids %>%
+  filter(is.na(MedRecN)) %>%
+  select(-MedRecN)
+
+mrn_id_df <- left_join(mrn_ids, clean_df) %>%
+  filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
+
+sts_id_df <- left_join(sts_ids, clean_df) %>%
+  filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
+
+full_df <- bind_rows(mrn_id_df, sts_id_df)
+
+pcgc_df <- full_df %>%
+  select(-MedRecN, -ParticID)
+
+check_dataframe <- function(df, column_name1, column_name2) {
+  if (nrow(df) < 1) {
+    stop("Error: The program failed to map your PCGC IDs to the STS data file. Please contact the ACC for assistance.")
+  }
+  if (column_name1 %in% colnames(df)) {
+    stop(paste("Error: The program failed to strip the STS IDs from your dataset. Please contact the ACC for assistance."))
+  }
+  if (column_name2 %in% colnames(df)) {
+    stop(paste("Error: The program failed to strip the MRNs from your dataset. Please contact the ACC for assistance."))
+  }
+  message("PCGC IDs have been mapped to the STS data file. Continuing...\n")
+}
+check_dataframe(pcgc_df, "ParticID", "MedRecN")
+#notes: - code above assumes that DataVrsn and OnDemandVrsn will be observed for all rows in STS file and uses this 
+#.        information to filter out those included in the key file but not found in the STS data file
+
+
+#Remove anyone over 18 years of age without re-consent 
+minor_df <- pcgc_df %>%
+  filter(AgeDays < 18 * 365.25)
+
+adult_df <- pcgc_df %>%
+  filter(AgeDays >= 18 * 365.25) %>%
+  filter(reconsented_at_18y == 1)
+
+acc_df <- bind_rows(minor_df, adult_df)
+
+check_age_and_consent <- function(df) {
+  if (!"AgeDays" %in% colnames(df)) {
+    stop("Error: The dataset does not appear to contain the expected age at surgery column. Please contact the ACC for assistance.")
+  }
+  if (!"reconsented_at_18y" %in% colnames(df)) {
+    stop("Error: The dataset does not appear to contain the expected reconsented at age 18y column. Please contact the ACC for assistance.")
+  }
+  valid_rows <- df$AgeDays < 18 * 365.25 | (df$AgeDays >= 18 * 365.25 & df$reconsented_at_18y == 1)
+  if (!all(valid_rows)) {
+    stop("Error: The program may have failed to remove some procedures occurring in unconsented patients >18 years of age. Please contact the ACC for assistance.")
+  }
+  message("Surgeries on non-reconsented participants that occurred after the age of 18y have been removed. Continuing...\n")
+}
+check_age_and_consent(acc_df)
+
+
+#Exporting de-identified STS data	
+write_file <- function(df) {
+  tryCatch({
+    write_tsv(df, file = "STS_file_for_ACC.tsv", na = "")
+    message("Exporting de-identified STS file. Please review file to ensure that there is no remaining PHI and all persons >18y without consent have been removed. If you have any questions please contact the ACC.")
+  }, error = function(e) {
+    stop("Error: Unable to export de-identified STS file. Please contact the ACC for assistance.")
+  })
+}
+write_file(acc_df)
+
+
+#Listing to inform site of any MRNs or STS IDs that failed to be detected in the STS file
+not_common_mrn <- c(setdiff(unique(pcgc_ids$MedRecN), unique(sts_df$MedRecN)), 
+                    setdiff(unique(sts_df$MedRecN), unique(pcgc_ids$MedRecN)))
+message("Warning: - The following MRNs were provided in your key file but were not found in the STS data file. 
+         - Please double check if the MRNs in the STS file are in the assumed format.  
+         - A listing has also been provided in the file unmapped_mrns.csv. 
+         - If no MRNs are printed to the screen, then all IDs were matched.\n", " ", paste(not_common_mrn, collapse = ", "))
+
+mrn_list_df <- data.frame(
+  MRN = not_common_mrn )
+write_csv(mrn_list_df, "unmapped_mrns.csv")
+
+
+not_common_sts <- c(setdiff(unique(pcgc_ids$ParticID), unique(sts_df$ParticID)), 
+                    setdiff(unique(sts_df$ParticID), unique(pcgc_ids$ParticID)))
+message("Warning: - The following STS IDs were provided in your key file but were not found in the STS data file.
+         - Please double check if the STS IDs in the STS file are in the assumed format.
+         - A listing has also been provided in the file unmapped_sts_ids.csv. 
+         - If no STS IDs are printed to the screen, then all IDs were matched.\n", " ", paste(not_common_sts, collapse = ", "))
+
+sts_list_df <- data.frame(
+  STS_ID = not_common_sts)
+write_csv(sts_list_df, "unmapped_sts_ids.csv")
+
+
+#Listing to inform site of total PCGC blind IDs requested and total returned
+key_pcgc_ids <- unique(pcgc_ids$pcgc_id)
+acc_pcgc_ids <- unique(acc_df$pcgc_id)
+
+message("Message: A total of ", length(key_pcgc_ids), " unique PCGC blind IDs were provided in the key file.")
+message("Message: A total of ", length(acc_pcgc_ids), " unique PCGC blind IDs have been returned in the STS_file_for_ACC.tsv file.")
+message("Message: If the difference between those requested and returned is large (i.e., more than would have been expected to have turned 18 and not been reconsented) then please double check if the MRNs and STS IDs included in your key file match the format in the STS data file.")
+
+
+
+
+
+
+
+
+
+
+
