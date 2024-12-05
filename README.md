@@ -93,4 +93,9 @@ This container __requires__ both of the following arguments:
 
 # Details on the processing steps contained in the software
 - program will first try to match MRNs in the key file to the MRNs in the sts data file. If a MRN is missing in the key file (e.g., left blank) then the program will try to match record on the STS ID
-- program assumes that all patients that were reconsented at >= 18 years of age will be identified by a numeric value of 1 in the reconsented_at_18y column in the key file. For patients < 18 years of age or those that have not yet reconsented after turning 18y this column can either be left blank or a value of 0 provided. 
+- program assumes that all patients that were reconsented at >= 18 years of age will be identified by a numeric value of 1 in the reconsented_at_18y column in the key file. For patients < 18 years of age or those that have not yet reconsented after turning 18y this column can either be left blank or a value of 0 provided.
+- 
+## Questions?
+
+Please contact help-pcgcdatahub@bmi.cchmc.org for any questions or technical challenges with this process.
+
