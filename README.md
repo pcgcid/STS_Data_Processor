@@ -32,14 +32,14 @@ The command to process it through the STS container is:
   
     ```sh
     docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:latest \
-    [--input-file <filename>] [--key-file <keyfile>]
+    --input-file <filename.xlsx> --key-file <keyfile.xlsx>
     ```
   
   - Windows (CMD):
   
     ```sh
     docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:latest ^
-    [--input-file <filename>] [--key-file <keyfile>]
+    --input-file <filename.xlsx> --key-file <keyfile.xlsx>
     ```
     
 For example, the following command can be used to trip PHI from STS data file and remove procedures occurring in unconsented participants > 18 years of age an STS data stored in 'De-ID STS data fields_NJO.xlsx' and remove unwanted columns (e.g., those with PHI or other sensitive data) for a list of cases stored in 'sts_pcgc_id_key.xlsx':
@@ -59,12 +59,12 @@ For example, the following command can be used to trip PHI from STS data file an
     --input-file "De-ID STS data fields_NJO.xlsx" --key-file "sts_pcgc_id_key.xlsx"
     ```
 
-The container will output 'STS_file_for_ACC.tsv' that contains de-identified STS data. The container will also output 'unmapped_mrns.csv' and 'unmapped_sts_ids.csv' files that contain the MRNs and STS IDs that were not found in the key file.
+The container will output 'STS_file_for_ACC.tsv' that contains de-identified STS data, which is safe for uploading to the ACC. The container will also output 'unmapped_mrns.csv' and 'unmapped_sts_ids.csv' files that contain the MRNs and STS IDs that were not found in the key file.
 
 **_Notes:_**
 
-- program assumes sts file is an .xlsx, that all sites will have the same set of column headers, and that the headers/column names are case sensitive
-- program assumes a key file is provided that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
+- program assumes sts file is an .xlsx (Excel file), that all sites will have the same set of column headers, and that the headers/column names are case sensitive
+- program assumes a key file is provided that contains the column headers MRN, STS_ID, PCGC_ID, reconsented_at_18y. Please use the provided sample file as a guideline.
 - program assumes MRNs and STS IDs in key file map to the format in the STS dataset. For example,if your STS file contains MRNs submitted with various formats such as "MR123456", "mr123456", "123456" thenyour key should contain MRNs in these various formats
         
 The output files will be stored in the current directory. 
@@ -87,8 +87,8 @@ or
 
 This container __requires__ both of the following arguments:
 
-- `--input-file` to specify an excel file with STS data containing STS data. The program assumes that all sites will have the same set of column headers, and that the headers/column names are case sensitive
-- `--key-file` to specify an excel key file that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
+- `--input-file` to specify an excel (.xlsx) file with STS data containing STS data. The program assumes that all sites will have the same set of column headers, and that the headers/column names are case sensitive
+- `--key-file` to specify an excel (.xlsx) key file that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
 
 
 # Details on the processing steps contained in the software
