@@ -32,23 +32,23 @@ The command to process it through the STS container is:
   
     ```sh
     docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:latest \
-    --input-file <filename.xlsx> --key-file <keyfile.xlsx>
+    --input-file <filename.txt> --key-file <keyfile.txt>
     ```
   
   - Windows (CMD):
   
     ```sh
     docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:latest ^
-    --input-file <filename.xlsx> --key-file <keyfile.xlsx>
+    --input-file <filename.txt> --key-file <keyfile.txt>
     ```
     
-For example, the following command can be used to trip PHI from STS data file and remove procedures occurring in unconsented participants > 18 years of age an STS data stored in 'De-ID STS data fields_NJO.xlsx' and remove unwanted columns (e.g., those with PHI or other sensitive data) for a list of cases stored in 'sts_pcgc_id_key.xlsx':
+For example, the following command can be used to trip PHI from STS data file and remove procedures occurring in unconsented participants > 18 years of age an STS data stored in 'De-ID STS data fields_NJO.txt' and remove unwanted columns (e.g., those with PHI or other sensitive data) for a list of cases stored in 'sts_pcgc_id_key.txt':
   
   - macOS:
   
     ```sh
     docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:latest \
-    --input-file "De-ID STS data fields_NJO.xlsx" --key-file "sts_pcgc_id_key.xlsx"
+    --input-file "De-ID STS data fields_NJO.txt" --key-file "sts_pcgc_id_key.txt"
     ```
     
   
@@ -56,14 +56,14 @@ For example, the following command can be used to trip PHI from STS data file an
   
     ```sh
     docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:latest ^
-    --input-file "De-ID STS data fields_NJO.xlsx" --key-file "sts_pcgc_id_key.xlsx"
+    --input-file "De-ID STS data fields_NJO.txt" --key-file "sts_pcgc_id_key.txt"
     ```
 
 The container will output 'STS_file_for_ACC.tsv' that contains de-identified STS data, which is safe for uploading to the ACC. The container will also output 'unmapped_mrns.csv' and 'unmapped_sts_ids.csv' files that contain the MRNs and STS IDs that were not found in the key file.
 
 **_Notes:_**
 
-- program assumes sts file is an .xlsx (Excel file), that all sites will have the same set of column headers, and that the headers/column names are case sensitive
+- program assumes sts file is a tab-delimited txt file, that all sites will have the same set of column headers, and that the headers/column names are case sensitive
 - program assumes a key file is provided that contains the column headers MRN, STS_ID, PCGC_ID, reconsented_at_18y. Please use the provided sample file as a guideline.
 - program assumes MRNs and STS IDs in key file map to the format in the STS dataset. For example,if your STS file contains MRNs submitted with various formats such as "MR123456", "mr123456", "123456" thenyour key should contain MRNs in these various formats
         
