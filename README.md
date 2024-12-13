@@ -87,8 +87,8 @@ or
 
 This container __requires__ both of the following arguments:
 
-- `--input-file` to specify an excel (.xlsx) file with STS data containing STS data. The program assumes that all sites will have the same set of column headers, and that the headers/column names are case sensitive
-- `--key-file` to specify an excel (.xlsx) key file that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
+- `--input-file` to specify an tab delimited text (.txt) or a .tsv file with STS data containing STS data. The program assumes that all sites will have the same set of column headers, and that the headers/column names are case sensitive
+- `--key-file` to specify an tab delimited text (.txt) or a .tsv key file that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
 
 
 # Details on the processing steps contained in the software

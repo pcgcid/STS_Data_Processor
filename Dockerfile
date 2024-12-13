@@ -30,8 +30,8 @@ RUN R --quiet -e "renv::restore()"
 
 
 # Copy the R script and necessary data files to the container
-COPY sts_script.R /app/sts_script.R
-COPY sts_col_names.rds /app/sts_col_names.rds
+COPY sts_script.R /app/
+COPY sts_col_names.rds /app/
 
 WORKDIR /tmp
 RUN chmod +x '/app/sts_script.R'

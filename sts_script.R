@@ -5,11 +5,10 @@
 #Script to strip PHI from STS data file and remove procedures occurring in unconsented 
 #participants > 18 years of age
 
-#notes: - program assumes sts data file and key file are provided in sts folder 
-#.        (modify as needed to either mount folder or allow passing file path to each)
-#.      - program assumes sts file is an .xlsx, that all sites will have the same set of column headers, 
+#notes: 
+#.      - program assumes sts file is a tab delimited text file, that all sites will have the same set of column headers, 
 #.        and that the headers/column names are case sensitive
-#.      - program assumes a key file is provided that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
+#.      - program assumes a key file is provided as a tab delimited text file that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
 #.      - program assumes MRNs and STS IDs in key file map to the format in the STS dataset. For example, 
 #.        if your STS file contains MRNs submitted with various formats such as "MR123456", "mr123456", "123456" then 
 #.        your key should contain MRNs in these various formats
@@ -33,19 +32,23 @@
 
 
 #Created by: Nicholas Ollberding
-#On: 11/20/24
+#On: 12/10/24
 #R version: 4.1.1
 # - tidyverse v1.3.1
 # - readxl v1.3.1
-
+# - readr v2.1.4
+# - data.table v1.14.8
 #####################################################################################
 #####################################################################################
 
 
 #Load libraries 
-library(tidyverse)
+#library(tidyverse)
+library(readr)
 library(readxl)
+library(data.table)
 library(docopt)
+library(dplyr)  # Load dplyr last, it masks stats::filter() and stats::lag()
 
 doc <- "
       Usage:
@@ -55,9 +58,9 @@ doc <- "
       Options:
         -h --help             Show available parameters.
         --input-file <filename>
-                              Specify input xlsx data file.
+                              Specify input tab-separated .txt file or a .tsv sts data file.
         --key-file <keyfile>
-                              Specify key file.
+                              Specify key tab-separated .txt file or a .tsv file.
                               
       "
 opt <- docopt::docopt(doc)
@@ -67,30 +70,48 @@ opt <- docopt::docopt(doc)
 input_path <- opt[["--input-file"]]
 key_file <- opt[["--key-file"]]
 
-if (is.null(input_path)){
-  stop("Input xlsx is missing. Please specify a .xlsx sts data file")
+# function to check if the file is a tsv or tab-separated text file
+check_tsv_file <- function(file_path) {
+  if (!grepl("\\.(txt|tsv)$", file_path, ignore.case = TRUE)) 
+    stop("Invalid file extension. Please specify a  tab-separated .txt file or a .tsv file")
+  lines <- readLines(file_path, n = 10)
+  if (!all(grepl("\\t", lines))) 
+    stop("Not tab-separated. Please specify a tab-separated input file")
 }
+
+#check if the input file is valid
+if (is.null(input_path)){
+  stop("Input sts data file is missing. Please specify a tab-separated .txt file or a .tsv file")
+}
+check_tsv_file(input_path)
+
 
 if (is.null(key_file)){
-  stop("Key xlsx file is missing. Please specify a key .xlsx stsdata file")
+  stop("Key tab-separated file is missing. Please specify a tab-separated .txt file or a .tsv stsdata file")
 }
+check_tsv_file(key_file)
 
 
-
-
-
-# Example: Print the provided path
-cat("Processing data at path:", input_path, "\n")
-#Set working directory 
-#setwd("/app")
 #notes: - this is serving to "mount a volume" containing the site STS files
 #.      - I expect this can get edited out of the final program if the -v /path/to/local/folder:/container/path is
 #.        used to mount a folder containing these files when the container is created
 #.      - please let me know if you know a better way!
 
 
-#Read in site STS data and confirm expected file names
-sts_df <- read_excel(input_path)  
+#Read in site STS data in chunks of 1000 rows to limit memory requirements
+chunk_list <- list()
+process_chunk <- function(data, pos) {
+  chunk_list[[length(chunk_list) + 1]] <<- data
+}
+callback <- DataFrameCallback$new(process_chunk)
+
+read_tsv_chunked(
+  file = input_path,
+  callback = callback,
+  chunk_size = 1000,    
+  col_names = TRUE)
+
+sts_df <- rbindlist(chunk_list)
 
 
 #Verify all column headers in the STS data file are as expected   
@@ -109,12 +130,12 @@ check_vectors(my_cols, sts_cols)
 
 #Remove/strip all PHI fields
 drop_cols <- c("CHSDID", "PatID", "VendorID", "AsstSurgeon", "AsstSurgNPI", "BirthCit", "BirthHospName",	"BirthHospTIN", "BirthSta",
-                "CnsltAttnd",	"CnsltAttndID", "CRNA",	"CRNAName", "FelRes", "HandoffAnesth",	"HandoffNursing",	"HandoffPhysStaff",
-                "HandoffSurg", "HICNumber", "HospName",	"HospNameKnown",	"HospNPI",	"HospStat",	"HospZIP",
-                "MatFName",	"MatLName", "MatMInit",	"MatMName",	"MatNameKnown",	"MatSSN",	"MatSSNKnown",
-                "NonCVPhys", "PatCountry",	"PatFName", "PatLName",	"PatMInit",	"PatMName",
-                "PatPostalCode", "PatRegion", "PrimAnesName", "RefCard",	"RefPhys", "Resident",	"ResidentID",
-                "SecAnes",	"SecAnesName", "Surgeon", "SurgNPI", "TIN")
+               "CnsltAttnd",	"CnsltAttndID", "CRNA",	"CRNAName", "FelRes", "HandoffAnesth",	"HandoffNursing",	"HandoffPhysStaff",
+               "HandoffSurg", "HICNumber", "HospName",	"HospNameKnown",	"HospNPI",	"HospStat",	"HospZIP",
+               "MatFName",	"MatLName", "MatMInit",	"MatMName",	"MatNameKnown",	"MatSSN",	"MatSSNKnown",
+               "NonCVPhys", "PatCountry",	"PatFName", "PatLName",	"PatMInit",	"PatMName",
+               "PatPostalCode", "PatRegion", "PrimAnesName", "RefCard",	"RefPhys", "Resident",	"ResidentID",
+               "SecAnes",	"SecAnesName", "Surgeon", "SurgNPI", "TIN")
 
 clean_df <- sts_df %>%
   select(-all_of(drop_cols))
@@ -131,20 +152,31 @@ check_no_phi(colnames(clean_df), drop_cols)
 
 
 #Replace STS IDs with PCGC blinded IDs
-pcgc_ids <- read_excel(key_file)
+pcgc_ids <- read_tsv(key_file)
+
 
 pcgc_ids <- pcgc_ids %>%
   rename_all(tolower) %>%
   rename("ParticID" = "sts_id",
-         "MedRecN" = "mrn")
+         "MedRecN" = "mrn") %>%
+  mutate(ParticID = as.character(ParticID),
+         MedRecN = as.character(MedRecN))
 
 mrn_ids <- pcgc_ids %>%
   filter(!(is.na(MedRecN))) %>%
+  mutate(ParticID = as.character(ParticID),
+         MedRecN = as.character(MedRecN)) %>%
   select(-ParticID)
 
 sts_ids <- pcgc_ids %>%
   filter(is.na(MedRecN)) %>%
+  mutate(ParticID = as.character(ParticID),
+         MedRecN = as.character(MedRecN)) %>%
   select(-MedRecN)
+
+clean_df <- clean_df %>%
+  mutate(ParticID = as.character(ParticID),
+         MedRecN = as.character(MedRecN))
 
 mrn_id_df <- left_join(mrn_ids, clean_df) %>%
   filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
@@ -202,19 +234,21 @@ check_age_and_consent(acc_df)
 
 #Exporting de-identified STS data	
 write_file <- function(df) {
-  tryCatch({
-    write_tsv(df, file = "STS_file_for_ACC.tsv", na = "")
-    message("Exporting de-identified STS file. Please review file to ensure that there is no remaining PHI and all persons >18y without consent have been removed. If you have any questions please contact the ACC.")
-  }, error = function(e) {
+  result <- try(write_tsv(df, file = "STS_file_for_ACC.tsv", na = ""), silent = TRUE)
+  if (inherits(result, "try-error")) {
     stop("Error: Unable to export de-identified STS file. Please contact the ACC for assistance.")
-  })
+  } else {
+    message("Exporting de-identified STS file. Please review file to ensure that there is no remaining PHI and all persons >18y without consent have been removed. If you have any questions please contact the ACC.")
+  }
 }
 write_file(acc_df)
 
 
 #Listing to inform site of any MRNs or STS IDs that failed to be detected in the STS file
-not_common_mrn <- c(setdiff(unique(pcgc_ids$MedRecN), unique(sts_df$MedRecN)), 
-                    setdiff(unique(sts_df$MedRecN), unique(pcgc_ids$MedRecN)))
+not_common_mrn <- setdiff(unique(pcgc_ids$MedRecN), unique(sts_df$MedRecN)) 
+
+not_common_mrn <- not_common_mrn[!is.na(not_common_mrn)]
+
 message("Warning: - The following MRNs were provided in your key file but were not found in the STS data file. 
          - Please double check if the MRNs in the STS file are in the assumed format.  
          - A listing has also been provided in the file unmapped_mrns.csv. 
@@ -222,11 +256,14 @@ message("Warning: - The following MRNs were provided in your key file but were n
 
 mrn_list_df <- data.frame(
   MRN = not_common_mrn )
+
 write_csv(mrn_list_df, "unmapped_mrns.csv")
 
 
-not_common_sts <- c(setdiff(unique(pcgc_ids$ParticID), unique(sts_df$ParticID)), 
-                    setdiff(unique(sts_df$ParticID), unique(pcgc_ids$ParticID)))
+not_common_sts <- setdiff(unique(pcgc_ids$ParticID), unique(sts_df$ParticID))
+
+not_common_sts <- not_common_sts[!is.na(not_common_sts)]
+
 message("Warning: - The following STS IDs were provided in your key file but were not found in the STS data file.
          - Please double check if the STS IDs in the STS file are in the assumed format.
          - A listing has also been provided in the file unmapped_sts_ids.csv. 
@@ -234,6 +271,10 @@ message("Warning: - The following STS IDs were provided in your key file but wer
 
 sts_list_df <- data.frame(
   STS_ID = not_common_sts)
+
+sts_list_df <- sts_list_df %>%
+  filter(!(is.na(STS_ID)))
+
 write_csv(sts_list_df, "unmapped_sts_ids.csv")
 
 
@@ -244,14 +285,4 @@ acc_pcgc_ids <- unique(acc_df$pcgc_id)
 message("Message: A total of ", length(key_pcgc_ids), " unique PCGC blind IDs were provided in the key file.")
 message("Message: A total of ", length(acc_pcgc_ids), " unique PCGC blind IDs have been returned in the STS_file_for_ACC.tsv file.")
 message("Message: If the difference between those requested and returned is large (i.e., more than would have been expected to have turned 18 and not been reconsented) then please double check if the MRNs and STS IDs included in your key file match the format in the STS data file.")
-
-
-
-
-
-
-
-
-
-
 
