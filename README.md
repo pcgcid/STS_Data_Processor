@@ -42,13 +42,13 @@ The command to process it through the STS container is:
     --input-file <filename.txt> --key-file <keyfile.txt>
     ```
     
-For example, the following command can be used to trip PHI from STS data file and remove procedures occurring in unconsented participants > 18 years of age an STS data stored in 'De-ID STS data fields_NJO.txt' and remove unwanted columns (e.g., those with PHI or other sensitive data) for a list of cases stored in 'sts_pcgc_id_key.txt':
+For example, the following command can be used to trip PHI from STS data file and remove procedures occurring in unconsented participants > 18 years of age an STS data stored in 'STS_dummy_data.txt' and remove unwanted columns (e.g., those with PHI or other sensitive data) for a list of cases stored in 'STS_map_file.txt':
   
   - macOS:
   
     ```sh
     docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:latest \
-    --input-file "De-ID STS data fields_NJO.txt" --key-file "sts_pcgc_id_key.txt"
+    --input-file "STS_dummy_data.txt" --key-file "STS_map_file.txt"
     ```
     
   
@@ -56,7 +56,7 @@ For example, the following command can be used to trip PHI from STS data file an
   
     ```sh
     docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:latest ^
-    --input-file "De-ID STS data fields_NJO.txt" --key-file "sts_pcgc_id_key.txt"
+    --input-file "STS_dummy_data.txt" --key-file "STS_map_file.txt"
     ```
 
 The container will output 'STS_file_for_ACC.tsv' that contains de-identified STS data, which is safe for uploading to the ACC. The container will also output 'unmapped_mrns.csv' and 'unmapped_sts_ids.csv' files that contain the MRNs and STS IDs that were not found in the key file.
