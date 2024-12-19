@@ -1,0 +1,4 @@
+MRN	 STS_ID	 PCGC_ID	 reconsented_at_18y
+a		1-00001	
+b		1-00002	y
+c		1-00003	
