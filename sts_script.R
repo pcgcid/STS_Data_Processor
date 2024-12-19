@@ -35,7 +35,6 @@
 #On: 12/10/24
 #R version: 4.1.1
 # - tidyverse v1.3.1
-# - readxl v1.3.1
 # - readr v2.1.4
 # - data.table v1.14.8
 #####################################################################################
@@ -45,14 +44,13 @@
 #Load libraries 
 #library(tidyverse)
 library(readr)
-library(readxl)
 library(data.table)
 library(docopt)
-library(dplyr)  # Load dplyr last, it masks stats::filter() and stats::lag()
+suppressPackageStartupMessages(library(dplyr))# Load dplyr last, it masks stats::filter() and stats::lag()
 
 doc <- "
       Usage:
-        entrypoint.R [-h | --help] [--input-file <filename>] [--key-file <keyfile>]
+        sts_script.R [-h | --help] [--input-file <filename>] [--key-file <keyfile>]
 
          
       Options:
@@ -74,9 +72,20 @@ key_file <- opt[["--key-file"]]
 check_tsv_file <- function(file_path) {
   if (!grepl("\\.(txt|tsv)$", file_path, ignore.case = TRUE)) 
     stop("Invalid file extension. Please specify a  tab-separated .txt file or a .tsv file")
-  lines <- readLines(file_path, n = 10)
+  lines <- readLines(file_path, n = 10, warn=FALSE)
   if (!all(grepl("\\t", lines))) 
     stop("Not tab-separated. Please specify a tab-separated input file")
+  
+    # Read the TSV file
+    df <- read_tsv(file_path, show_col_types = FALSE, name_repair = 'minimal')
+    
+    # Check for empty columns
+    empty_cols <- names(df)[names(df) == "" ]
+    
+    if (length(empty_cols) > 0) {
+      stop(paste("Error: Empty columns were found in ", file_path, ". Please remove the empty columns and try again"))
+    }
+
 }
 
 #check if the input file is valid
@@ -87,7 +96,7 @@ check_tsv_file(input_path)
 
 
 if (is.null(key_file)){
-  stop("Key tab-separated file is missing. Please specify a tab-separated .txt file or a .tsv stsdata file")
+  stop("Key tab-separated file is missing. Please specify a tab-separated .txt file or a .tsv sts data file")
 }
 check_tsv_file(key_file)
 
@@ -101,17 +110,18 @@ check_tsv_file(key_file)
 #Read in site STS data in chunks of 1000 rows to limit memory requirements
 chunk_list <- list()
 process_chunk <- function(data, pos) {
-  chunk_list[[length(chunk_list) + 1]] <<- data
+   data
 }
 callback <- DataFrameCallback$new(process_chunk)
 
-read_tsv_chunked(
+sts_df <- read_tsv_chunked(
   file = input_path,
   callback = callback,
   chunk_size = 1000,    
-  col_names = TRUE)
+  col_names = TRUE,
+  show_col_types = FALSE)
 
-sts_df <- rbindlist(chunk_list)
+#sts_df <- rbindlist(chunk_list)
 
 
 #Verify all column headers in the STS data file are as expected   
@@ -150,10 +160,8 @@ check_no_phi <- function(vector1, vector2) {
 }
 check_no_phi(colnames(clean_df), drop_cols)
 
-
 #Replace STS IDs with PCGC blinded IDs
-pcgc_ids <- read_tsv(key_file)
-
+pcgc_ids <- read_tsv(key_file,show_col_types = FALSE)
 
 pcgc_ids <- pcgc_ids %>%
   rename_all(tolower) %>%
@@ -178,14 +186,15 @@ clean_df <- clean_df %>%
   mutate(ParticID = as.character(ParticID),
          MedRecN = as.character(MedRecN))
 
-mrn_id_df <- left_join(mrn_ids, clean_df) %>%
+mrn_id_df <- suppressMessages(
+  left_join(mrn_ids, clean_df) %>%
   filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
-
-sts_id_df <- left_join(sts_ids, clean_df) %>%
+)
+sts_id_df <- suppressMessages(
+  left_join(sts_ids, clean_df) %>%
   filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
-
-full_df <- bind_rows(mrn_id_df, sts_id_df)
-
+)
+full_df <- rbind(mrn_id_df, sts_id_df)
 pcgc_df <- full_df %>%
   select(-MedRecN, -ParticID)
 
@@ -206,6 +215,7 @@ check_dataframe(pcgc_df, "ParticID", "MedRecN")
 #.        information to filter out those included in the key file but not found in the STS data file
 
 
+
 #Remove anyone over 18 years of age without re-consent 
 minor_df <- pcgc_df %>%
   filter(AgeDays < 18 * 365.25)
@@ -214,7 +224,8 @@ adult_df <- pcgc_df %>%
   filter(AgeDays >= 18 * 365.25) %>%
   filter(reconsented_at_18y == 1)
 
-acc_df <- bind_rows(minor_df, adult_df)
+acc_df <- rbind(minor_df, adult_df)
+
 
 check_age_and_consent <- function(df) {
   if (!"AgeDays" %in% colnames(df)) {
@@ -230,7 +241,6 @@ check_age_and_consent <- function(df) {
   message("Surgeries on non-reconsented participants that occurred after the age of 18y have been removed. Continuing...\n")
 }
 check_age_and_consent(acc_df)
-
 
 #Exporting de-identified STS data	
 write_file <- function(df) {
