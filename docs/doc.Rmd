@@ -40,6 +40,7 @@ After installation, the software runs on a local computer without requiring an i
 ## Step 0: Install Docker
 
 See the [Installing Docker](https://degauss.org/using_degauss.html#Installing_Docker) webpage.
+Make sure you have the latest Docker version installed on your computer.
 
 **_Note about Docker Settings:_**  
 After installing Docker, but before running containers, go to **Docker Settings > Advanced** and change **memory** to greater than 4000 MB (or 4 GiB) <br> 
