@@ -76,16 +76,16 @@ check_tsv_file <- function(file_path) {
   if (!all(grepl("\\t", lines))) 
     stop("Not tab-separated. Please specify a tab-separated input file")
   
-    # Read the TSV file
-    df <- read_tsv(file_path, show_col_types = FALSE, name_repair = 'minimal')
-    
-    # Check for empty columns
-    empty_cols <- names(df)[names(df) == "" ]
-    
-    if (length(empty_cols) > 0) {
-      stop(paste("Error: Empty columns were found in ", file_path, ". Please remove the empty columns and try again"))
-    }
-
+  # Read the TSV file
+  df <- read_tsv(file_path, show_col_types = FALSE, name_repair = 'minimal')
+  
+  # Check for empty columns
+  empty_cols <- names(df)[names(df) == "" ]
+  
+  if (length(empty_cols) > 0) {
+    stop(paste("Error: Empty columns were found in ", file_path, ". Please remove the empty columns and try again"))
+  }
+  
 }
 
 #check if the input file is valid
@@ -110,7 +110,7 @@ check_tsv_file(key_file)
 #Read in site STS data in chunks of 1000 rows to limit memory requirements
 chunk_list <- list()
 process_chunk <- function(data, pos) {
-   data
+  data
 }
 callback <- DataFrameCallback$new(process_chunk)
 
@@ -139,7 +139,7 @@ check_vectors(my_cols, sts_cols)
 
 
 #Remove/strip all PHI fields
-drop_cols <- c("CHSDID", "PatID", "VendorID", "AsstSurgeon", "AsstSurgNPI", "BirthCit", "BirthHospName",	"BirthHospTIN", "BirthSta",
+drop_cols <- c("CHSDID", "ParticID", "VendorID", "AsstSurgeon", "AsstSurgNPI", "BirthCit", "BirthHospName",	"BirthHospTIN", "BirthSta",
                "CnsltAttnd",	"CnsltAttndID", "CRNA",	"CRNAName", "FelRes", "HandoffAnesth",	"HandoffNursing",	"HandoffPhysStaff",
                "HandoffSurg", "HICNumber", "HospName",	"HospNameKnown",	"HospNPI",	"HospStat",	"HospZIP",
                "MatFName",	"MatLName", "MatMInit",	"MatMName",	"MatNameKnown",	"MatSSN",	"MatSSNKnown",
@@ -165,38 +165,38 @@ pcgc_ids <- read_tsv(key_file,show_col_types = FALSE)
 
 pcgc_ids <- pcgc_ids %>%
   rename_all(tolower) %>%
-  rename("ParticID" = "sts_id",
+  rename("PatID" = "sts_id",
          "MedRecN" = "mrn") %>%
-  mutate(ParticID = as.character(ParticID),
+  mutate(PatID = as.character(PatID),
          MedRecN = as.character(MedRecN))
 
 mrn_ids <- pcgc_ids %>%
   filter(!(is.na(MedRecN))) %>%
-  mutate(ParticID = as.character(ParticID),
+  mutate(PatID = as.character(PatID),
          MedRecN = as.character(MedRecN)) %>%
-  select(-ParticID)
+  select(-PatID)
 
 sts_ids <- pcgc_ids %>%
   filter(is.na(MedRecN)) %>%
-  mutate(ParticID = as.character(ParticID),
+  mutate(PatID = as.character(PatID),
          MedRecN = as.character(MedRecN)) %>%
   select(-MedRecN)
 
 clean_df <- clean_df %>%
-  mutate(ParticID = as.character(ParticID),
+  mutate(PatID = as.character(PatID),
          MedRecN = as.character(MedRecN))
 
 mrn_id_df <- suppressMessages(
   left_join(mrn_ids, clean_df) %>%
-  filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
+    filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
 )
 sts_id_df <- suppressMessages(
   left_join(sts_ids, clean_df) %>%
-  filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
+    filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
 )
 full_df <- rbind(mrn_id_df, sts_id_df)
 pcgc_df <- full_df %>%
-  select(-MedRecN, -ParticID)
+  select(-MedRecN, -PatID)
 
 check_dataframe <- function(df, column_name1, column_name2) {
   if (nrow(df) < 1) {
@@ -210,7 +210,7 @@ check_dataframe <- function(df, column_name1, column_name2) {
   }
   message("PCGC IDs have been mapped to the STS data file. Continuing...\n")
 }
-check_dataframe(pcgc_df, "ParticID", "MedRecN")
+check_dataframe(pcgc_df, "PatID", "MedRecN")
 #notes: - code above assumes that DataVrsn and OnDemandVrsn will be observed for all rows in STS file and uses this 
 #.        information to filter out those included in the key file but not found in the STS data file
 
@@ -270,7 +270,7 @@ mrn_list_df <- data.frame(
 write_csv(mrn_list_df, "unmapped_mrns.csv")
 
 
-not_common_sts <- setdiff(unique(pcgc_ids$ParticID), unique(sts_df$ParticID))
+not_common_sts <- setdiff(unique(pcgc_ids$PatID), unique(sts_df$PatID))
 
 not_common_sts <- not_common_sts[!is.na(not_common_sts)]
 
