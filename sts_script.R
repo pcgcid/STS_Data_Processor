@@ -132,7 +132,23 @@ check_vectors <- function(vector1, vector2) {
   if (identical(sort(vector1), sort(vector2))) {
     message("All column headers in the STS data file are as expected. Continuing...\n")
   } else {
-    stop("Error: There appear to be additional or missing columns in your STS data file. Please contact the ACC for assistance.")
+    # stop if either "PatID" or "MedRecN" not in the STS file
+    if (!("PatID" %in% vector1) | !("MedRecN" %in% vector1)) {
+      stop("Error: The STS data file does not contain the expected patient ID ('PatID') or medical record number ('MedRecN') columns. Please contact the ACC for assistance.")
+    } else {
+      #find missing or extra columns
+      extra_cols <- setdiff(vector1, vector2)
+      missing_cols <- setdiff(vector2, vector1)
+      if (length(missing_cols) > 0) {
+        message("The following columns are missing from your STS data file: ", paste(missing_cols, collapse = ", "), ".\nPlease note that the program is case sensitive.")
+      }
+      if (length(extra_cols) > 0) {
+        message("The following columns are present in your STS data file but were not expected: ", paste(extra_cols, collapse = ", "), ".
+        \nPlease confirm any extra columns do not contain PHI before sending to the ACC (and if they do contain PHI to manually remove those columns).
+                \nNote that the program is case sensitive.")
+      }
+    }
+    
   }
 }
 check_vectors(my_cols, sts_cols)
