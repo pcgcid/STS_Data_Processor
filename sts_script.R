@@ -125,8 +125,8 @@ sts_df <- read_tsv_chunked(
 
 
 #Verify all column headers in the STS data file are as expected   
-my_cols <- readRDS("/app/sts_col_names.rds")   #this will need to be loaded into the docker image so it can be read in by the R program
-sts_cols <- colnames(sts_df)
+sts_cols <- readRDS("/app/sts_col_names.rds")   #this will need to be loaded into the docker image so it can be read in by the R program
+my_cols <- colnames(sts_df)
 
 check_vectors <- function(vector1, vector2) {
   if (identical(sort(vector1), sort(vector2))) {
@@ -140,7 +140,8 @@ check_vectors <- function(vector1, vector2) {
       extra_cols <- setdiff(vector1, vector2)
       missing_cols <- setdiff(vector2, vector1)
       if (length(missing_cols) > 0) {
-        message("The following columns are missing from your STS data file: ", paste(missing_cols, collapse = ", "), ".\nPlease note that the program is case sensitive.")
+        message("The following columns are missing from your STS data file: ", paste(missing_cols, collapse = ", "), 
+                ".\nPlease note that the program is case sensitive.")
       }
       if (length(extra_cols) > 0) {
         message("The following columns are present in your STS data file but were not expected: ", paste(extra_cols, collapse = ", "), ".
@@ -164,7 +165,7 @@ drop_cols <- c("CHSDID", "ParticID", "VendorID", "AsstSurgeon", "AsstSurgNPI", "
                "SecAnes",	"SecAnesName", "Surgeon", "SurgNPI", "TIN", "AdmitFromLoc", "BirthCou", "BirthInfoKnown", "BirthLocKnown")
 
 clean_df <- sts_df %>%
-  select(-all_of(drop_cols))
+  select(-any_of(drop_cols))
 
 check_no_phi <- function(vector1, vector2) {
   common_items <- intersect(vector1, vector2)
@@ -203,12 +204,10 @@ clean_df <- clean_df %>%
          MedRecN = as.character(MedRecN))
 
 mrn_id_df <- suppressMessages(
-  left_join(mrn_ids, clean_df) %>%
-    filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
+  left_join(mrn_ids, clean_df) 
 )
 sts_id_df <- suppressMessages(
-  left_join(sts_ids, clean_df) %>%
-    filter(!(is.na(DataVrsn)) & !(is.na(OnDemandVrsn)))
+  left_join(sts_ids, clean_df) 
 )
 full_df <- rbind(mrn_id_df, sts_id_df)
 pcgc_df <- full_df %>%
