@@ -1,4 +1,10 @@
-FROM rocker/r-ver:4.4.1
+FROM rocker/r-ver:4.4.2
+
+ARG GIT_COMMIT
+ARG GIT_DATE
+
+ENV GIT_COMMIT=$GIT_COMMIT
+ENV GIT_DATE=$GIT_DATE
 
 RUN R --quiet -e "install.packages('remotes', repos = 'https://packagemanager.rstudio.com/all/__linux__/focal/latest')"
 RUN R --quiet -e "remotes::install_github('rstudio/renv')"
@@ -38,6 +44,12 @@ RUN chmod +x '/app/sts_script.R'
 
 # Install required R packages
 #RUN Rscript -e "install.packages(c('tidyverse', 'readxl'), repos='http://cran.rstudio.com/')"
+
+
+
+# Retrieve the latest Git commit hash and save it in a file
+# Install git (if not already installed)
+RUN apt-get update && apt-get install -y git
 
 # Set the default command to run the R script
 ENTRYPOINT ["/app/sts_script.R"]

@@ -64,6 +64,9 @@ doc <- "
 opt <- docopt::docopt(doc)
 
 
+cat("\nRunning version with Commit:", Sys.getenv("GIT_COMMIT"), "of Date:", Sys.getenv("GIT_DATE"), "\n")
+
+
 # Access the parsed arguments
 input_path <- opt[["--input-file"]]
 key_file <- opt[["--key-file"]]
