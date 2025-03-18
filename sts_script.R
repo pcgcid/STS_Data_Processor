@@ -165,7 +165,8 @@ drop_cols <- c("CHSDID", "ParticID", "VendorID", "AsstSurgeon", "AsstSurgNPI", "
                "MatFName",	"MatLName", "MatMInit",	"MatMName",	"MatNameKnown",	"MatSSN",	"MatSSNKnown",
                "NonCVPhys", "PatCountry",	"PatFName", "PatLName",	"PatMInit",	"PatMName",
                "PatPostalCode", "PatRegion", "PrimAnesName", "RefCard",	"RefPhys", "Resident",	"ResidentID",
-               "SecAnes",	"SecAnesName", "Surgeon", "SurgNPI", "TIN", "AdmitFromLoc", "BirthCou", "BirthInfoKnown", "BirthLocKnown")
+               "SecAnes",	"SecAnesName", "Surgeon", "SurgNPI", "TIN", "AdmitFromLoc", "BirthCou", "BirthInfoKnown", "BirthLocKnown", 
+               "HospCMSCert", "PayorPrim", "PrimMCareFFS", "PayorSecond", "SecondMCareFFS", "MHICNumber", "PrimAnesNPI", "PatAddr", "PatCity", "OperationID")
 
 clean_df <- sts_df %>%
   select(-any_of(drop_cols))
