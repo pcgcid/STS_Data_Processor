@@ -46,6 +46,8 @@
 library(readr)
 library(data.table)
 library(docopt)
+library(dplyr)
+
 suppressPackageStartupMessages(library(dplyr))# Load dplyr last, it masks stats::filter() and stats::lag()
 
 doc <- "
@@ -181,41 +183,51 @@ check_no_phi <- function(vector1, vector2) {
 }
 check_no_phi(colnames(clean_df), drop_cols)
 
+clean_df <- clean_df %>%
+  mutate(PatID = as.character(PatID),
+         MedRecN = as.character(MedRecN))
+
 #Replace STS IDs with PCGC blinded IDs
 pcgc_ids <- read_tsv(key_file,show_col_types = FALSE)
 
+nrow_orig = nrow(pcgc_ids)
 pcgc_ids <- pcgc_ids %>%
   rename_all(tolower) %>%
   rename("PatID" = "sts_id",
          "MedRecN" = "mrn") %>%
   mutate(PatID = as.character(PatID),
-         MedRecN = as.character(MedRecN))
+         MedRecN = as.character(MedRecN),
+         PatID_key = PatID,
+         MedRecN_key = MedRecN)
 
-mrn_ids <- pcgc_ids %>%
-  filter(!(is.na(MedRecN))) %>%
-  mutate(PatID = as.character(PatID),
-         MedRecN = as.character(MedRecN)) %>%
-  select(-PatID)
+matched_both_mrn_sts.id = pcgc_ids %>%
+  inner_join(clean_df)
 
-sts_ids <- pcgc_ids %>%
-  filter(is.na(MedRecN)) %>%
-  mutate(PatID = as.character(PatID),
-         MedRecN = as.character(MedRecN)) %>%
-  select(-MedRecN)
+mrn_ids_df <- pcgc_ids %>%
+  select(-PatID) %>%
+  inner_join(clean_df, by = "MedRecN") %>%
+  filter(is.na(PatID))
 
-clean_df <- clean_df %>%
-  mutate(PatID = as.character(PatID),
-         MedRecN = as.character(MedRecN))
+sts_ids_df <- pcgc_ids %>%
+  select(-MedRecN) %>%
+  inner_join(clean_df, by = "PatID") %>%
+  filter(is.na(MedRecN))
 
-mrn_id_df <- suppressMessages(
-  left_join(mrn_ids, clean_df) 
-)
-sts_id_df <- suppressMessages(
-  left_join(sts_ids, clean_df) 
-)
-full_df <- rbind(mrn_id_df, sts_id_df)
+
+full_df <- rbind(matched_both_mrn_sts.id, mrn_ids_df, sts_ids_df) %>%
+  mutate(PatID = ifelse(is.na(PatID), PatID_key, PatID),
+         MedRecN = ifelse(is.na(MedRecN), MedRecN_key, MedRecN)) %>%
+  select(-PatID_key, -MedRecN_key) %>%
+  relocate(PatID, MedRecN)
 pcgc_df <- full_df %>%
   select(-MedRecN, -PatID)
+
+nrow_filtered = nrow(pcgc_df)
+
+if (nrow_orig - nrow_filtered > 0) {
+  message("Message: The number of rows in the STS data file has been reduced from ", nrow_orig, " to ", nrow_filtered, " after mapping PCGC IDs to the STS data file.
+          \n The row(s) were removed because there is no matching MRN or STS ID in the STS data file.")
+} 
 
 check_dataframe <- function(df, column_name1, column_name2) {
   if (nrow(df) < 1) {
@@ -230,7 +242,7 @@ check_dataframe <- function(df, column_name1, column_name2) {
   message("PCGC IDs have been mapped to the STS data file. Continuing...\n")
 }
 check_dataframe(pcgc_df, "PatID", "MedRecN")
-#notes: - code above assumes that DataVrsn and OnDemandVrsn will be observed for all rows in STS file and uses this 
+#notes: - code above assumes that PatID and MedRecN will be observed for all rows in STS file and uses this 
 #.        information to filter out those included in the key file but not found in the STS data file
 
 
