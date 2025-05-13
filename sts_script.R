@@ -206,12 +206,12 @@ matched_both_mrn_sts.id = pcgc_ids %>%
 mrn_ids_df <- pcgc_ids %>%
   select(-PatID) %>%
   inner_join(clean_df, by = "MedRecN") %>%
-  filter(is.na(PatID))
+  filter(is.na(PatID) |is.na(PatID_key)) 
 
 sts_ids_df <- pcgc_ids %>%
   select(-MedRecN) %>%
   inner_join(clean_df, by = "PatID") %>%
-  filter(is.na(MedRecN))
+  filter(is.na(MedRecN) | is.na(MedRecN_key))
 
 
 full_df <- rbind(matched_both_mrn_sts.id, mrn_ids_df, sts_ids_df) %>%
