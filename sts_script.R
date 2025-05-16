@@ -8,14 +8,14 @@
 #notes: 
 #.      - program assumes sts file is a tab delimited text file, that all sites will have the same set of column headers, 
 #.        and that the headers/column names are case sensitive
-#.      - program assumes a key file is provided as a tab delimited text file that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
+#.      - program assumes a key file is provided as a tab delimited text file that contains the columns MRN, STS_ID, PCGC_ID, adult_consent
 #.      - program assumes MRNs and STS IDs in key file map to the format in the STS dataset. For example, 
 #.        if your STS file contains MRNs submitted with various formats such as "MR123456", "mr123456", "123456" then 
 #.        your key should contain MRNs in these various formats
 #.      - program will first try to match MRNs in the key file to the MRNs in the sts data file. If a MRN is missing in 
 #.        the key file (e.g., left blank) then the program will try to match record on the STS ID
-#.      - program assumes that all patients that were reconsented at >= 18 years of age will be identified by a 
-#.        numeric value of 1 in the reconsented_at_18y column in the key file. For patients < 18 years of age
+#.      - program assumes that all patients that were consented as adult (reconsented or consented at >= 18 years of age) will be identified by a 
+#.        numeric value of 1 in the adult_consent column in the key file. For patients < 18 years of age
 #.        or those that have not yet reconsented after turning 18y this column can either be left blank or a value 
 #.        of 0 provided. 
 
@@ -253,7 +253,7 @@ minor_df <- pcgc_df %>%
 
 adult_df <- pcgc_df %>%
   filter(AgeDays >= 18 * 365.25) %>%
-  filter(reconsented_at_18y == 1)
+  filter(adult_consent == 1)
 
 acc_df <- rbind(minor_df, adult_df)
 
@@ -262,10 +262,10 @@ check_age_and_consent <- function(df) {
   if (!"AgeDays" %in% colnames(df)) {
     stop("Error: The dataset does not appear to contain the expected age at surgery column. Please contact the ACC for assistance.")
   }
-  if (!"reconsented_at_18y" %in% colnames(df)) {
+  if (!"adult_consent" %in% colnames(df)) {
     stop("Error: The dataset does not appear to contain the expected reconsented at age 18y column. Please contact the ACC for assistance.")
   }
-  valid_rows <- df$AgeDays < 18 * 365.25 | (df$AgeDays >= 18 * 365.25 & df$reconsented_at_18y == 1)
+  valid_rows <- df$AgeDays < 18 * 365.25 | (df$AgeDays >= 18 * 365.25 & df$adult_consent == 1)
   if (!all(valid_rows)) {
     stop("Error: The program may have failed to remove some procedures occurring in unconsented patients >18 years of age. Please contact the ACC for assistance.")
   }
