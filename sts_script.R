@@ -16,7 +16,7 @@
 #.        the key file (e.g., left blank) then the program will try to match record on the STS ID
 #.      - program assumes that all patients that were consented as adult (reconsented or consented at >= 18 years of age) will be identified by a 
 #.        numeric value of 1 in the adult_consent column in the key file. For patients < 18 years of age
-#.        or those that have not yet reconsented after turning 18y this column can either be left blank or a value 
+#.        or those that have not yet (re-)consented after turning 18y this column can either be left blank or a value 
 #.        of 0 provided. 
 
 
@@ -271,7 +271,7 @@ check_age_and_consent <- function(df) {
     stop("Error: The dataset does not appear to contain the expected age at surgery column. Please contact the ACC for assistance.")
   }
   if (!"adult_consent" %in% colnames(df)) {
-    stop("Error: The dataset does not appear to contain the expected reconsented at age 18y column. Please contact the ACC for assistance.")
+    stop("Error: The dataset does not appear to contain the expected adult_consent column. Please contact the ACC for assistance.")
   }
   valid_rows <- df$AgeDays < 18 * 365.25 | (df$AgeDays >= 18 * 365.25 & df$adult_consent == 1)
   if (!all(valid_rows)) {
