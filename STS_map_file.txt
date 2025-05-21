@@ -1,4 +1,6 @@
-MRN	 STS_ID	 PCGC_ID	 reconsented_at_18y
-a		1-00001	
-b		1-00002	1
-c		1-00003	
+MRN	STS_ID	PCGC_ID	adult_consent
+a		1-00001	
+b		1-00002	1
+c		1-00003		
+d		1-00004	1
+e		1-00005	 

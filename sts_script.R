@@ -43,12 +43,15 @@
 
 #Load libraries 
 #library(tidyverse)
-library(readr)
-library(data.table)
-library(docopt)
-library(dplyr)
+suppressWarnings({
+  suppressMessages({
+    library(readr)
+    library(data.table)
+    library(docopt)
+    library(dplyr)
+  })
+})
 
-suppressPackageStartupMessages(library(dplyr))# Load dplyr last, it masks stats::filter() and stats::lag()
 
 doc <- "
       Usage:
@@ -75,17 +78,20 @@ key_file <- opt[["--key-file"]]
 
 # function to check if the file is a tsv or tab-separated text file
 check_tsv_file <- function(file_path) {
+  # browser()
   if (!grepl("\\.(txt|tsv)$", file_path, ignore.case = TRUE)) 
     stop("Invalid file extension. Please specify a  tab-separated .txt file or a .tsv file")
   lines <- readLines(file_path, n = 10, warn=FALSE)
-  if (!all(grepl("\\t", lines))) 
-    stop("Not tab-separated. Please specify a tab-separated input file")
-  
+
   # Read the TSV file
-  df <- read_tsv(file_path, show_col_types = FALSE, name_repair = 'minimal')
+  df <- tryCatch({
+    suppressWarnings(read_tsv(file_path, show_col_types = FALSE, name_repair = 'minimal'))
+  }, error = function(e) {
+    stop("Not tab-separated. Please specify a tab-separated input file")
+  })
   
   # Check for empty columns
-  empty_cols <- names(df)[names(df) == "" ]
+  empty_cols <- names(df)[names(df) == ""]
   
   if (length(empty_cols) > 0) {
     stop(paste("Error: Empty columns were found in ", file_path, ". Please remove the empty columns and try again"))
@@ -188,7 +194,7 @@ clean_df <- clean_df %>%
          MedRecN = as.character(MedRecN))
 
 #Replace STS IDs with PCGC blinded IDs
-pcgc_ids <- read_tsv(key_file,show_col_types = FALSE)
+pcgc_ids <- suppressWarnings({read_tsv(key_file,show_col_types = FALSE)})
 
 nrow_orig = nrow(pcgc_ids)
 pcgc_ids <- pcgc_ids %>%
@@ -200,8 +206,10 @@ pcgc_ids <- pcgc_ids %>%
          PatID_key = PatID,
          MedRecN_key = MedRecN)
 
-matched_both_mrn_sts.id = pcgc_ids %>%
-  inner_join(clean_df)
+suppressMessages({
+  matched_both_mrn_sts.id = pcgc_ids %>%
+  inner_join(clean_df) 
+})
 
 mrn_ids_df <- pcgc_ids %>%
   select(-PatID) %>%
@@ -269,8 +277,8 @@ check_age_and_consent <- function(df) {
   if (!all(valid_rows)) {
     stop("Error: The program may have failed to remove some procedures occurring in unconsented patients >18 years of age. Please contact the ACC for assistance.")
   }
-  message("Surgeries on non-reconsented participants that occurred after the age of 18y have been removed. Continuing...\n")
-}
+  message("Surgeries after the age of 18 on patients that did not consent or re-consent as adults have been removed. Continuing...\n")
+  }
 check_age_and_consent(acc_df)
 
 #Exporting de-identified STS data	
@@ -279,7 +287,7 @@ write_file <- function(df) {
   if (inherits(result, "try-error")) {
     stop("Error: Unable to export de-identified STS file. Please contact the ACC for assistance.")
   } else {
-    message("Exporting de-identified STS file. Please review file to ensure that there is no remaining PHI and all persons >18y without consent have been removed. If you have any questions please contact the ACC.")
+    message("Exporting de-identified STS file. Please review file to ensure that there is no remaining PHI and all surgeries from participants who did not (re-) consent as adults have been removed. If you have any questions please contact the ACC.")
   }
 }
 write_file(acc_df)
@@ -290,10 +298,13 @@ not_common_mrn <- setdiff(unique(pcgc_ids$MedRecN), unique(sts_df$MedRecN))
 
 not_common_mrn <- not_common_mrn[!is.na(not_common_mrn)]
 
-message("Warning: - The following MRNs were provided in your key file but were not found in the STS data file. 
-         - Please double check if the MRNs in the STS file are in the assumed format.  
-         - A listing has also been provided in the file unmapped_mrns.csv. 
-         - If no MRNs are printed to the screen, then all IDs were matched.\n", " ", paste(not_common_mrn, collapse = ", "))
+if (length(not_common_mrn) > 0 ){
+  message("Warning: - The following MRNs were provided in your key file but were not found in the STS data file:"," ", paste(not_common_mrn, collapse = ", "), 
+           "\n
+           - Please double check if the MRNs in the STS file are in the assumed format.  
+           - A listing has also been provided in the file unmapped_mrns.csv. 
+           - If no MRNs are printed to the screen, then all IDs were matched.\n" )
+}
 
 mrn_list_df <- data.frame(
   MRN = not_common_mrn )
@@ -305,10 +316,14 @@ not_common_sts <- setdiff(unique(pcgc_ids$PatID), unique(sts_df$PatID))
 
 not_common_sts <- not_common_sts[!is.na(not_common_sts)]
 
-message("Warning: - The following STS IDs were provided in your key file but were not found in the STS data file.
-         - Please double check if the STS IDs in the STS file are in the assumed format.
-         - A listing has also been provided in the file unmapped_sts_ids.csv. 
-         - If no STS IDs are printed to the screen, then all IDs were matched.\n", " ", paste(not_common_sts, collapse = ", "))
+if (length(not_common_sts) > 0 ){
+  
+  message("Warning: - The following MRNs were provided in your key file but were not found in the STS data file:"," ", paste(not_common_mrn, collapse = ", "), 
+          "\n
+           - Please double check if the STS IDs in the STS file are in the assumed format.
+           - A listing has also been provided in the file unmapped_sts_ids.csv. 
+           - If no STS IDs are printed to the screen, then all IDs were matched.\n")
+}
 
 sts_list_df <- data.frame(
   STS_ID = not_common_sts)

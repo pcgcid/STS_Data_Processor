@@ -1,7 +1,7 @@
 # A Docker container to anonymize/recode STS (Society of Thoracic Surgeons) data
 
 ## Introduction
-The STS docker container is used to strip PHI from STS data file and remove procedures occurring in unconsented participants > 18 years of age
+The STS docker container is used to strip PHI from STS data file and remove procedures occurring in adult participants who have not been (re-) consented as adults.
 
 After installation, the software runs on a local computer without requiring an internet connection, thus maintaining the security and privacy of the participant information. 
 
@@ -65,8 +65,8 @@ The container will output 'STS_file_for_ACC.tsv' that contains de-identified STS
 **_Notes:_**
 
 - program assumes sts file is a tab-delimited txt file, that all sites will have the same set of column headers, and that the headers/column names are case sensitive
-- program assumes a key file is provided that contains the column headers MRN, STS_ID, PCGC_ID, reconsented_at_18y. Please use the provided sample file as a guideline.
-- program assumes MRNs and STS IDs in key file map to the format in the STS dataset. For example,if your STS file contains MRNs submitted with various formats such as "MR123456", "mr123456", "123456" thenyour key should contain MRNs in these various formats
+- program assumes a key file is provided that contains the column headers MRN, STS_ID, PCGC_ID, adult_consent. Please use the provided sample file as a guideline.
+- program assumes MRNs and STS IDs in key file map to the format in the STS dataset. For example, if your STS file contains MRNs (found in column MedRecN) submitted with various formats such as "MR123456", "mr123456", "123456" then your key should contain MRNs in these various formats. STS_IDs are found in column PatID in the STS data.
         
 The output files will be stored in the current directory. 
 
@@ -89,12 +89,12 @@ or
 This container __requires__ both of the following arguments:
 
 - `--input-file` to specify an tab delimited text (.txt) or a .tsv file with STS data containing STS data. The program assumes that all sites will have the same set of column headers, and that the headers/column names are case sensitive
-- `--key-file` to specify an tab delimited text (.txt) or a .tsv key file that contains the columns MRN, STS_ID, PCGC_ID, reconsented_at_18y
+- `--key-file` to specify an tab delimited text (.txt) or a .tsv key file that contains the columns MRN, STS_ID, PCGC_ID, adult_consent
 
 
 # Details on the processing steps contained in the software
-- program will first try to match MRNs in the key file to the MRNs in the sts data file. If a MRN is missing in the key file (e.g., left blank) then the program will try to match record on the STS ID
-- program assumes that all patients that were reconsented at >= 18 years of age will be identified by a numeric value of 1 in the reconsented_at_18y column in the key file. For patients < 18 years of age or those that have not yet reconsented after turning 18y this column can either be left blank or a value of 0 provided.
+- program will first try to match MRNs in the key file to the MRNs in the STS data file (column MedRecN). If an MRN is missing in the key file (e.g., left blank) then the program will try to match record on the STS ID (column PatID in STS data file).
+- program assumes that all patients that were consented or reconsented at >= 18 years of age will be identified by a numeric value of 1 in the adult_consent  column in the key file. For patients < 18 years of age or those that have not yet reconsented after turning 18y this column can either be left blank or a value of 0 provided.
 - 
 ## Questions?
 
