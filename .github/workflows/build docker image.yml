@@ -39,13 +39,13 @@ jobs:
       
       - name: Create release tag variable
         run: |
-            echo "VERSIONED=${{ env.REGISTRY }}/${{ env.USERNAME }}/sts_processor:${RELEASE_TAG}" >> $GITHUB_ENV
+            echo "VERSIONED=${{ env.REGISTRY }}/${{ env.USERNAME }}/sts_processor:${{ env.RELEASE_TAG }}" >> $GITHUB_ENV
 
       - name: Build container
         run: |
               docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
               --build-arg GIT_DATE="$(git log -1 --format=%cd --date=iso-strict)" \
-              --build-arg IMAGE_TAG=${RELEASE_TAG}
+              --build-arg IMAGE_TAG=$${{ env.RELEASE_TAG }}
               -t ${{ env.CONTAINER }} .
 
       - name: Tag and push release (and latest) container
