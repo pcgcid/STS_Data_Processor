@@ -15,6 +15,11 @@ env:
 jobs:
   build-docker-container:
     runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      USERNAME: ${{ github.repository_owner }}
+      REPOSITORY: ${{ github.repository }}
+      
     steps:
       - uses: actions/checkout@v4
 
