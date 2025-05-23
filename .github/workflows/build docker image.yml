@@ -34,7 +34,7 @@ jobs:
 
       - name: Extract release tag
         if: github.event_name == 'release'
-                run: echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
       
       
       - name: Create release tag variable
