@@ -55,11 +55,12 @@ suppressWarnings({
 
 doc <- "
       Usage:
-        sts_script.R [-h | --help] [--input-file <filename>] [--key-file <keyfile>]
+        sts_script.R [-h | --help] [-v | --version] [--input-file <filename>] [--key-file <keyfile>]
 
          
       Options:
         -h --help             Show available parameters.
+        -v --version          Show version.
         --input-file <filename>
                               Specify input tab-separated .txt file or a .tsv sts data file.
         --key-file <keyfile>
@@ -69,12 +70,18 @@ doc <- "
 opt <- docopt::docopt(doc)
 
 
-cat("\nRunning version with Commit:", Sys.getenv("GIT_COMMIT"), "of Date:", Sys.getenv("GIT_DATE"), "\n")
+cat("\nRunning version ",Sys.getenv("IMAGE_TAG")," with Commit:", Sys.getenv("GIT_COMMIT"), "of Date:", Sys.getenv("GIT_DATE"), "\n")
 
 
 # Access the parsed arguments
 input_path <- opt[["--input-file"]]
 key_file <- opt[["--key-file"]]
+
+# Handle version option
+if (opt$version | opt$ver) {
+  cat("Version: ",Sys.getenv("IMAGE_TAG"),"\n")
+  q(status = 0)
+}
 
 # function to check if the file is a tsv or tab-separated text file
 check_tsv_file <- function(file_path) {

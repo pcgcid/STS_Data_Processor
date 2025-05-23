@@ -4,6 +4,8 @@ on:
      branches: [ "master" ]  
   push:
      branches: [ "master" ]  
+  release:
+    types: [published]
 env:
    # Use docker.io for Docker Hub if empty
    REGISTRY: ghcr.io
@@ -25,18 +27,41 @@ jobs:
            registry: ${{ env.REGISTRY }}
            username: ${{ github.actor }}
            password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Create latest tag variable
+        run: echo "CONTAINER=${{ env.REGISTRY }}/${{ env.USERNAME }}/sts_processor:latest" >> $GITHUB_ENV
 
-      - name: Build the docker image with latest tag
+
+      - name: Extract release tag
+        if: github.event_name == 'release'
+                run: echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      
+      
+      - name: Create release tag variable
+        run: |
+            echo "VERSIONED=${{ env.REGISTRY }}/${{ env.USERNAME }}/sts_processor:${RELEASE_TAG}" >> $GITHUB_ENV
+
+      - name: Build container
         run: |
               docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
               --build-arg GIT_DATE="$(git log -1 --format=%cd --date=iso-strict)" \
-              -t ghcr.io/${{ github.repository_owner }}/sts_processor:latest .
-        env:
-          DOCKER_USERNAME: ${{ github.repository }}
-          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+              --build-arg IMAGE_TAG=${RELEASE_TAG}
+              -t ${{ env.CONTAINER }} .
 
-      - name: branch Push Docker image to github package registry with latest tag
-        run: docker push ghcr.io/${{ github.repository_owner }}/sts_processor:latest
-        env:
-          DOCKER_USERNAME: ${{ github.repository }}
-          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag and push release (and latest) container
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            docker tag ${{ env.CONTAINER }} ${{ env.VERSIONED }}
+            docker push ${{ env.VERSIONED }}
+          fi
+          docker push ${{ env.CONTAINER }}
+          
+      - name: Update README
+        run: sed -i "s|ghcr\.io/pcgcid/sts_processor:[^ ]*|ghcr.io/pcgcid/sts_processor:${RELEASE_TAG}|g" README.md
+
+      - name: Commit and push changes
+        run: |
+          git add README.md
+          git commit -m "Update README with version ${RELEASE_TAG}"
+          git push    
+

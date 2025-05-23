@@ -2,9 +2,11 @@ FROM rocker/r-ver:4.4.2
 
 ARG GIT_COMMIT
 ARG GIT_DATE
+ARG IMAGE_TAG
 
 ENV GIT_COMMIT=$GIT_COMMIT
 ENV GIT_DATE=$GIT_DATE
+ENV IMAGE_TAG=$IMAGE_TAG
 
 RUN R --quiet -e "install.packages('remotes', repos = 'https://packagemanager.rstudio.com/all/__linux__/focal/latest')"
 RUN R --quiet -e "remotes::install_github('rstudio/renv')"
