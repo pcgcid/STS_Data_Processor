@@ -25,12 +25,11 @@ jobs:
         uses: docker/login-action@v3
         with:
            registry: ${{ env.REGISTRY }}
-           username: ${{ github.actor }}
+           username: ${{ env.USERNAME }}
            password: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Create latest tag variable
         run: echo "CONTAINER=${{ env.REGISTRY }}/${{ env.USERNAME }}/sts_processor:latest" >> $GITHUB_ENV
-
 
       - name: Extract release tag
         if: github.event_name == 'release'
@@ -38,8 +37,8 @@ jobs:
       
       
       - name: Create release tag variable
-        run: |
-            echo "VERSIONED=${{ env.REGISTRY }}/${{ env.USERNAME }}/sts_processor:${{ env.RELEASE_TAG }}" >> $GITHUB_ENV
+        if: github.event_name == 'release'
+        run: echo "VERSIONED=${{ env.REGISTRY }}/${{ env.USERNAME }}/sts_processor:${{ env.RELEASE_TAG }}" >> $GITHUB_ENV
 
       - name: Build container
         run: |
