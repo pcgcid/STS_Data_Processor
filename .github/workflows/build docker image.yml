@@ -71,7 +71,9 @@ jobs:
 
       - name: Commit and push changes
         run: |
+          git fetch origin master
+          git checkout master
           git add README.md
           git commit -m "Update README with version ${RELEASE_TAG}"
-          git push    
+          git push origin master
 
