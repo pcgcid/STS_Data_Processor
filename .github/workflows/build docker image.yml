@@ -1,9 +1,9 @@
 name: Build and publish Docker image
 on:
-  pull_request:
-     branches: [ "master" ]  
-  push:
-     branches: [ "master" ]  
+  # pull_request:
+  #    branches: [ "master" ]  
+  # push:
+  #    branches: [ "master" ]  
   release:
     types: [published]
 env:
