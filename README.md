@@ -32,14 +32,14 @@ The command to process it through the STS container is:
   - macOS:
   
     ```sh
-    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor: \
+    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:0.0.1 \
     --input-file <filename.txt> --key-file <keyfile.txt>
     ```
   
   - Windows (CMD):
   
     ```sh
-    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor: ^
+    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:0.0.1 ^
     --input-file <filename.txt> --key-file <keyfile.txt>
     ```
     
@@ -48,7 +48,7 @@ For example, the following command can be used to trip PHI from STS data file an
   - macOS:
   
     ```sh
-    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor: \
+    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:0.0.1 \
     --input-file "STS_dummy_data.txt" --key-file "STS_map_file.txt"
     ```
     
@@ -56,7 +56,7 @@ For example, the following command can be used to trip PHI from STS data file an
   - Windows (CMD):
   
     ```sh
-    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor: ^
+    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:0.0.1 ^
     --input-file "STS_dummy_data.txt" --key-file "STS_map_file.txt"
     ```
 
@@ -78,12 +78,12 @@ Command line parameters to show help:
 - `-h` or `--help`: Show available parameters. For example, users can use this command:
 
   ```sh
-  docker run  ghcr.io/pcgcid/sts_processor: -h
+  docker run  ghcr.io/pcgcid/sts_processor:0.0.1 -h
   ```
 or 
 
   ```sh
-  docker run  ghcr.io/pcgcid/sts_processor: --help
+  docker run  ghcr.io/pcgcid/sts_processor:0.0.1 --help
   ```
 
 This container __requires__ both of the following arguments:
