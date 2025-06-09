@@ -69,11 +69,15 @@ jobs:
       - name: Update README
         run: sed -i "s|ghcr\.io/pcgcid/sts_processor:[^ ]*|ghcr.io/pcgcid/sts_processor:${RELEASE_TAG}|g" README.md
 
+      - name: Update Rmd documentation
+        run: sed -i "s|ghcr\.io/pcgcid/sts_processor:[^ ]*|ghcr.io/pcgcid/sts_processor:${RELEASE_TAG}|g" docs/doc.Rmd
+
       - name: Commit and push changes
         run: |
           git fetch origin master
           git checkout master
           git add README.md
-          git commit -m "Update README with version ${RELEASE_TAG}"
+          git add docs/doc*
+          git commit -m "Update README and Rmd documentation with version ${RELEASE_TAG}"
           git push origin master
 
