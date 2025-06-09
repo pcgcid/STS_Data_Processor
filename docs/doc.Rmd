@@ -60,14 +60,14 @@ The command to process it through the STS container is:
   - macOS:
   
     ```sh
-    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:latest \
+    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:0.0.1 \
     [--input-file <filename>] [--key-file <keyfile>]
     ```
   
   - Windows (CMD):
   
     ```sh
-    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:latest ^
+    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:0.0.1 ^
     [--input-file <filename>] [--key-file <keyfile>]
     ```
     
@@ -76,7 +76,7 @@ For example, the following command can be used to trip PHI from STS data file an
   - macOS:
   
     ```sh
-    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:latest \
+    docker run --rm -v $PWD:/tmp ghcr.io/pcgcid/sts_processor:0.0.1 \
     --input-file "De-ID STS data fields_NJO.txt" --key-file "sts_pcgc_id_key.txt"
     ```
     
@@ -84,7 +84,7 @@ For example, the following command can be used to trip PHI from STS data file an
   - Windows (CMD):
   
     ```sh
-    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:latest ^
+    docker run --rm -v "%cd%":/tmp ghcr.io/pcgcid/sts_processor:0.0.1 ^
     --input-file "De-ID STS data fields_NJO.txt" --key-file "sts_pcgc_id_key.txt"
     ```
 
@@ -115,12 +115,12 @@ Command line parameters to show help:
 - `-h` or `--help`: Show available parameters. For example, users can use this command:
 
   ```sh
-  docker run  ghcr.io/pcgcid/sts_processor:latest -h
+  docker run  ghcr.io/pcgcid/sts_processor:0.0.1 -h
   ```
 or 
 
   ```sh
-  docker run  ghcr.io/pcgcid/sts_processor:latest --help
+  docker run  ghcr.io/pcgcid/sts_processor:0.0.1 --help
   ```
 
 This container __requires__ both of the following arguments:
